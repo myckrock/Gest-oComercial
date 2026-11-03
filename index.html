@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestão Comercial</title><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">GC</div><div><h1>Gestão Comercial</h1><small>Clientes • Produtos • Estoque • Vendas</small></div></div>
+  <nav>
+    <button data-view="dashboard">Dashboard</button><button data-view="clientes">Clientes</button>
+    <button data-view="produtos">Produtos</button><button data-view="vendas">Vendas</button>
+    <button data-view="receber">Contas a receber</button><button data-view="importar">Importar</button>
+  </nav>
+</header>
+<main>
+<section id="dashboard" class="view">
+<h2>Dashboard</h2><div class="cards">
+<div class="card"><span>Clientes</span><b id="kpiClientes">0</b></div>
+<div class="card"><span>Produtos</span><b id="kpiProdutos">0</b></div>
+<div class="card"><span>⚠ Estoque baixo</span><b id="kpiEstoqueBaixo">0</b><small>produtos para repor</small></div>
+<div class="card"><span>Contas em aberto</span><b id="kpiAberto">R$ 0,00</b></div>
+</div>
+<div class="panel"><div class="panel-head"><h3>Estoque</h3><button onclick="show('produtos')">Gerenciar produtos</button></div><div id="dashboardEstoque"></div></div>
+</section>
+
+<section id="clientes" class="view hidden"><div class="section-head"><div><h2>Clientes</h2><p>Cadastre, edite e gerencie seus clientes.</p></div><button onclick="novoCliente()">+ Novo cliente</button></div>
+<form id="clienteForm" class="form-grid panel">
+<input type="hidden" id="clienteId"><label>Nome*<input id="clienteNome" required></label><label>CPF/CNPJ<input id="clienteDoc"></label>
+<label>Telefone<input id="clienteTel"></label><label>Dia preferencial<input id="clienteDia" type="number" min="1" max="31"></label>
+<label>Limite de crédito<input id="clienteLimite" type="number" min="0" step=".01"></label><label>E-mail<input id="clienteEmail" type="email"></label>
+<label class="wide">Observações<textarea id="clienteObs"></textarea></label><div class="wide"><button>Salvar cliente</button><button type="button" onclick="novoCliente()">Cancelar</button></div>
+</form><div id="clientesLista"></div></section>
+
+<section id="produtos" class="view hidden"><div class="section-head"><div><h2>Produtos</h2><p>Preço, custo, estoque e movimentações.</p></div><div class="actions"><button onclick="novoProduto()">+ Novo produto</button><button class="secondary" onclick="exportar('produtos')">Exportar CSV</button></div></div>
+<form id="produtoForm" class="form-grid panel">
+<input type="hidden" id="produtoId"><label>Código/SKU<input id="produtoCodigo"></label><label>Nome*<input id="produtoNome" required></label>
+<label>Categoria<input id="produtoCategoria"></label><label>Preço de venda*<input id="produtoPreco" type="number" min="0" step=".01" required></label>
+<label>Custo<input id="produtoCusto" type="number" min="0" step=".01"></label><label>Estoque inicial<input id="produtoEstoque" type="number" min="0" step=".001"></label>
+<label>Estoque mínimo<input id="produtoMinimo" type="number" min="0" step=".001"><small class="field-help">Quando o estoque chegar a este número ou abaixo, o produto será marcado para reposição.</small></label><label>Unidade<input id="produtoUnidade" value="un"></label>
+<label class="wide">Observações<textarea id="produtoObs"></textarea></label><div class="wide"><button>Salvar produto</button><button type="button" onclick="novoProduto()">Cancelar</button></div>
+</form><div id="produtosLista"></div></section>
+
+<section id="vendas" class="view hidden"><div class="section-head"><div><h2>Nova venda</h2><p>A venda baixa o estoque automaticamente.</p></div></div>
+<form id="vendaForm" class="panel"><label>Cliente<select id="vendaCliente" required></select></label><div id="itens"></div>
+<button type="button" class="secondary" id="addItem">+ Adicionar produto</button><div class="sale-total">Total: <b id="vendaTotal">R$ 0,00</b></div>
+<div class="form-grid"><label>Forma de pagamento<select id="vendaForma"><option value="dinheiro">Dinheiro</option><option value="pix">PIX</option><option value="cartao">Cartão</option><option value="crediario">Crediário</option></select></label>
+<label>Entrada<input id="vendaEntrada" type="number" min="0" step=".01" value="0"></label><label>Nº de parcelas<input id="vendaParcelas" type="number" min="1" value="1"></label>
+<label>Primeiro vencimento<input id="vendaPrimeiroVenc" type="date"></label><label>Intervalo<select id="vendaIntervalo"><option value="1">Mensal</option><option value="7">Semanal</option><option value="15">Quinzenal</option></select></label></div>
+<button>Registrar venda</button></form><div id="vendasLista"></div></section>
+
+<section id="receber" class="view hidden"><div class="section-head"><div><h2>Contas a receber</h2><p>Acompanhe parcelas abertas, vencidas e pagas.</p></div></div><div id="receberLista"></div></section>
+
+<section id="importar" class="view hidden"><div class="section-head"><div><h2>Importação de tabelas</h2><p>Importe clientes, produtos e preços em massa.</p></div></div>
+<div class="panel import-box">
+<h3>Como funciona</h3><p>Você pode importar <b>.XLSX</b> (Excel) ou <b>CSV</b>. O sistema lê a primeira aba da planilha e reconhece diversos nomes e sinônimos para as colunas.</p>
+<div class="import-grid">
+<label>Tipo de dados<select id="importTipo"><option value="clientes">Clientes</option><option value="produtos">Produtos</option><option value="precos">Preços / atualização de produtos</option><option value="estoque">Estoque / ajuste</option></select></label>
+<label>Arquivo Excel/CSV<input id="importFile" type="file" accept=".xlsx,.csv,.txt"></label>
+</div>
+<div class="help"><b>Clientes:</b> nome / cliente / comprador / consumidor; documento / CPF / CNPJ; telefone / celular / WhatsApp; dia; limite / crédito; email / e-mail<br>
+<b>Produtos:</b> código / SKU / referência; produto / item / descrição / mercadoria; categoria / grupo; preço / preco / valor / valor de venda; custo; estoque / quantidade / saldo; mínimo; unidade; observações<br>
+<b>Preços:</b> código / SKU / referência ou produto / item / descrição; preço / preco / valor / valor de venda; custo<br>
+<b>Estoque:</b> código / SKU / referência ou produto / item / descrição; estoque / quantidade / saldo (define o estoque atual)</div>
+<button onclick="processarImportacao()">Importar tabela</button><button class="secondary" onclick="baixarModelos()">Baixar modelos CSV</button>
+<pre id="importPreview"></pre></div>
+<div class="panel"><h3>Também é possível colar uma tabela</h3><textarea id="pasteTable" rows="8" placeholder="codigo;nome;preco;estoque&#10;001;Produto A;25,90;10"></textarea><button onclick="importarTexto()">Importar texto colado</button></div>
+</section>
+</main>
+<script src="app.js" defer></script>
+</body></html>
