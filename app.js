@@ -1,5 +1,6 @@
 const KEY='gestao_comercial_v2';
-const state=JSON.parse(localStorage.getItem(KEY)||'{"clientes":[],"produtos":[],"vendas":[],"itensVenda":[],"parcelas":[],"movimentos":[]}');
+const state=JSON.parse(localStorage.getItem(KEY)||'{"clientes":[],"produtos":[],"vendas":[],"itensVenda":[],"parcelas":[],"movimentos":[],"fornecedores":[],"despesas":[],"socios":[],"movimentosSocios":[]}');
+state.fornecedores ||= []; state.despesas ||= []; state.socios ||= []; state.movimentosSocios ||= [];
 const save=()=>localStorage.setItem(KEY,JSON.stringify(state)); const $=id=>document.getElementById(id);
 const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const uid=()=> (globalThis.crypto && typeof globalThis.crypto.randomUUID==='function')
@@ -46,6 +47,45 @@ else if(tipo==='produtos'){for(const r of rows.slice(1)){const nome=get(r,'nome'
 else if(tipo==='precos'){for(const r of rows.slice(1)){const codigo=get(r,'codigo','sku','cod'),nome=get(r,'nome','produto'),p=state.produtos.find(x=>(codigo&&x.codigo===codigo)||(nome&&x.nome.toLowerCase()===nome.toLowerCase()));if(!p)continue;const old=p.preco;p.preco=num(get(r,'preco','valor','precodevenda'));if(get(r,'custo'))p.custo=num(get(r,'custo'));count++}}
 else if(tipo==='estoque'){for(const r of rows.slice(1)){const codigo=get(r,'codigo','sku','cod'),nome=get(r,'nome','produto'),p=state.produtos.find(x=>(codigo&&x.codigo===codigo)||(nome&&x.nome.toLowerCase()===nome.toLowerCase()));if(!p)continue;const n=num(get(r,'estoque','quantidade'));state.movimentos.push({id:uid(),produtoId:p.id,tipo:'importacao',quantidade:n-p.estoque,data:today()});p.estoque=n;count++}}
 save();return count}
+
+// -------------------- DESPESAS / FORNECEDORES --------------------
+function novoFornecedor(){ $('fornecedorForm').reset(); $('fornecedorId').value=''; show('despesas'); }
+$('fornecedorForm').onsubmit=e=>{
+  e.preventDefault(); const id=$('fornecedorId').value||uid();
+  const f={id,nome:$('fornecedorNome').value.trim(),doc:$('fornecedorDoc').value.trim(),tel:$('fornecedorTel').value.trim(),email:$('fornecedorEmail').value.trim(),obs:$('fornecedorObs').value.trim()};
+  const i=state.fornecedores.findIndex(x=>x.id===id); i>=0?state.fornecedores[i]=f:state.fornecedores.push(f); save(); novoFornecedor();
+};
+function editFornecedor(id){const f=state.fornecedores.find(x=>x.id===id); if(!f)return; $('fornecedorId').value=f.id;$('fornecedorNome').value=f.nome||'';$('fornecedorDoc').value=f.doc||'';$('fornecedorTel').value=f.tel||'';$('fornecedorEmail').value=f.email||'';$('fornecedorObs').value=f.obs||'';show('despesas')}
+function delFornecedor(id){if(confirm('Excluir fornecedor? As despesas já lançadas serão mantidas.')){state.fornecedores=state.fornecedores.filter(x=>x.id!==id);save();renderAll()}}
+function novaDespesa(){ $('despesaForm').reset(); $('despesaId').value=''; $('despesaData').value=today(); show('despesas'); }
+$('despesaForm').onsubmit=e=>{
+  e.preventDefault(); const valor=num($('despesaValor').value); if(valor<=0)return alert('Informe um valor maior que zero.');
+  const id=$('despesaId').value||uid(); const d={id,data:$('despesaData').value||today(),descricao:$('despesaDescricao').value.trim(),categoria:$('despesaCategoria').value.trim(),fornecedorId:$('despesaFornecedor').value||'',valor,forma:$('despesaForma').value,obs:$('despesaObs').value.trim()};
+  if(!d.descricao)return alert('Informe a descrição da despesa.'); const i=state.despesas.findIndex(x=>x.id===id); i>=0?state.despesas[i]=d:state.despesas.push(d); save(); novaDespesa();
+};
+function editDespesa(id){const d=state.despesas.find(x=>x.id===id);if(!d)return;$('despesaId').value=d.id;$('despesaData').value=d.data||today();$('despesaDescricao').value=d.descricao||'';$('despesaCategoria').value=d.categoria||'';$('despesaFornecedor').value=d.fornecedorId||'';$('despesaValor').value=d.valor||0;$('despesaForma').value=d.forma||'pix';$('despesaObs').value=d.obs||'';show('despesas')}
+function delDespesa(id){if(confirm('Excluir esta despesa?')){state.despesas=state.despesas.filter(x=>x.id!==id);save();renderAll()}}
+
+// -------------------- SOCIOS / PARTILHA --------------------
+function novoSocio(){ $('socioForm').reset(); $('socioId').value=''; $('socioPercentual').value='0'; show('socios'); }
+$('socioForm').onsubmit=e=>{
+  e.preventDefault(); const id=$('socioId').value||uid(); const nome=$('socioNome').value.trim(); const percentual=Number($('socioPercentual').value||0);
+  if(!nome)return alert('Informe o nome do sócio.'); if(percentual<0||percentual>100)return alert('A participação deve ficar entre 0 e 100%.');
+  const s={id,nome,percentual,doc:$('socioDoc').value.trim(),obs:$('socioObs').value.trim()}; const i=state.socios.findIndex(x=>x.id===id); i>=0?state.socios[i]=s:state.socios.push(s); save(); novoSocio();
+};
+function editSocio(id){const s=state.socios.find(x=>x.id===id);if(!s)return;$('socioId').value=s.id;$('socioNome').value=s.nome||'';$('socioPercentual').value=s.percentual||0;$('socioDoc').value=s.doc||'';$('socioObs').value=s.obs||'';show('socios')}
+function delSocio(id){if(confirm('Excluir sócio? Os lançamentos financeiros anteriores serão mantidos.')){state.socios=state.socios.filter(x=>x.id!==id);save();renderAll()}}
+function novoMovSocio(){ $('movSocioForm').reset(); $('movSocioId').value=''; $('movSocioData').value=today(); $('movSocioTipo').value='retirada'; show('socios'); }
+$('movSocioForm').onsubmit=e=>{
+  e.preventDefault(); const socioId=$('movSocioSocio').value, valor=num($('movSocioValor').value); if(!socioId)return alert('Selecione um sócio.'); if(valor<=0)return alert('Informe um valor maior que zero.');
+  const id=$('movSocioId').value||uid(); const m={id,socioId,data:$('movSocioData').value||today(),tipo:$('movSocioTipo').value,valor,descricao:$('movSocioDescricao').value.trim()};
+  if(!m.descricao)return alert('Informe a descrição do lançamento.'); const i=state.movimentosSocios.findIndex(x=>x.id===id); i>=0?state.movimentosSocios[i]=m:state.movimentosSocios.push(m); save(); novoMovSocio();
+};
+function editMovSocio(id){const m=state.movimentosSocios.find(x=>x.id===id);if(!m)return;$('movSocioId').value=m.id;$('movSocioSocio').value=m.socioId||'';$('movSocioData').value=m.data||today();$('movSocioTipo').value=m.tipo||'retirada';$('movSocioValor').value=m.valor||0;$('movSocioDescricao').value=m.descricao||'';show('socios')}
+function delMovSocio(id){if(confirm('Excluir este lançamento?')){state.movimentosSocios=state.movimentosSocios.filter(x=>x.id!==id);save();renderAll()}}
+function socioSaldo(id){return state.movimentosSocios.filter(m=>m.socioId===id).reduce((a,m)=>a+(m.tipo==='credito'?m.valor:-m.valor),0)}
+function totalDespesas(){return state.despesas.reduce((a,d)=>a+Number(d.valor||0),0)}
+
 // -------------------- IMPORTAÇÃO FLEXÍVEL --------------------
 // Aceita títulos de colunas com diversos sinônimos em português.
 const ALIASES={
@@ -199,16 +239,30 @@ function renderProdutos(){
 }
 function renderVenda(){$('vendaCliente').innerHTML=state.clientes.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');if(!document.querySelector('.sale-item')&&state.produtos.length)addItem();$('vendasLista').innerHTML=`<div class="table-wrap"><table><tr><th>Data</th><th>Cliente</th><th>Total</th><th>Entrada</th><th>Saldo</th><th>Forma</th></tr>${state.vendas.slice().reverse().map(v=>`<tr><td>${dateBR(v.data)}</td><td>${esc(state.clientes.find(c=>c.id===v.clienteId)?.nome||'')}</td><td>${money(v.total)}</td><td>${money(v.entrada)}</td><td>${money(v.saldo)}</td><td>${esc(v.forma)}</td></tr>`).join('')}</table></div>`}
 function renderReceber(){const now=today();$('receberLista').innerHTML=`<div class="table-wrap"><table><tr><th>Cliente</th><th>Parcela</th><th>Vencimento</th><th>Saldo</th><th>Status</th><th>Ação</th></tr>${state.parcelas.slice().sort((a,b)=>a.vencimento.localeCompare(b.vencimento)).map(p=>{const st=p.status==='paga'?'Paga':p.vencimento<now?'Vencida':p.status==='parcial'?'Parcial':'Aberta';return `<tr><td>${esc(state.clientes.find(c=>c.id===p.clienteId)?.nome||'')}</td><td>${p.numero}/${p.totalParcelas}</td><td>${dateBR(p.vencimento)}</td><td>${money(p.valor-p.valorPago)}</td><td class="${st==='Paga'?'status-paid':st==='Vencida'?'status-overdue':'status-open'}">${st}</td><td>${st!=='Paga'?`<button onclick="pagarParcela('${p.id}')">Receber</button>`:''}</td></tr>`}).join('')}</table></div>`}
+
+function renderDespesas(){
+  $('despesaFornecedor').innerHTML='<option value="">Sem fornecedor</option>'+state.fornecedores.map(f=>`<option value="${f.id}">${esc(f.nome)}</option>`).join('');
+  $('fornecedoresLista').innerHTML=`<div class="table-wrap"><table><tr><th>Fornecedor</th><th>Documento</th><th>Telefone</th><th>Ações</th></tr>${state.fornecedores.map(f=>`<tr><td>${esc(f.nome)}</td><td>${esc(f.doc||'')}</td><td>${esc(f.tel||'')}</td><td class="actions"><button onclick="editFornecedor('${f.id}')">Editar</button><button class="danger" onclick="delFornecedor('${f.id}')">Excluir</button></td></tr>`).join('')}</table></div>`;
+  const total=totalDespesas(); const porCat={}; state.despesas.forEach(d=>porCat[d.categoria||'Sem categoria']=(porCat[d.categoria||'Sem categoria']||0)+Number(d.valor||0));
+  $('despesasResumo').innerHTML=`<div class="cards mini-cards"><div class="card"><span>Total de despesas</span><b>${money(total)}</b></div><div class="card"><span>Lançamentos</span><b>${state.despesas.length}</b></div><div class="card"><span>Fornecedores</span><b>${state.fornecedores.length}</b></div></div><div class="table-wrap"><table><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Fornecedor</th><th>Forma</th><th>Valor</th><th>Ações</th></tr>${state.despesas.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(d=>`<tr><td>${dateBR(d.data)}</td><td>${esc(d.descricao)}</td><td>${esc(d.categoria||'—')}</td><td>${esc(state.fornecedores.find(f=>f.id===d.fornecedorId)?.nome||'—')}</td><td>${esc(d.forma||'—')}</td><td><b>${money(d.valor)}</b></td><td class="actions"><button onclick="editDespesa('${d.id}')">Editar</button><button class="danger" onclick="delDespesa('${d.id}')">Excluir</button></td></tr>`).join('')}</table></div>`;
+}
+function renderSocios(){
+  $('movSocioSocio').innerHTML=state.socios.map(s=>`<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+  $('sociosResumo').innerHTML=`<div class="table-wrap"><table><tr><th>Sócio</th><th>Participação</th><th>Créditos</th><th>Retiradas/Gastos</th><th>Saldo</th><th>Ações</th></tr>${state.socios.map(s=>{const ms=state.movimentosSocios.filter(m=>m.socioId===s.id),cr=ms.filter(m=>m.tipo==='credito').reduce((a,m)=>a+m.valor,0),db=ms.filter(m=>m.tipo!=='credito').reduce((a,m)=>a+m.valor,0),saldo=cr-db;return `<tr><td><b>${esc(s.nome)}</b></td><td>${Number(s.percentual||0).toLocaleString('pt-BR')}%</td><td>${money(cr)}</td><td>${money(db)}</td><td class="${saldo<0?'critical':saldo>0?'low':'ok'}"><b>${money(saldo)}</b></td><td class="actions"><button onclick="editSocio('${s.id}')">Editar</button><button class="danger" onclick="delSocio('${s.id}')">Excluir</button></td></tr>`}).join('')}</table></div>`;
+  $('movSociosLista').innerHTML=`<div class="table-wrap"><table><tr><th>Data</th><th>Sócio</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Ações</th></tr>${state.movimentosSocios.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(m=>`<tr><td>${dateBR(m.data)}</td><td>${esc(state.socios.find(s=>s.id===m.socioId)?.nome||'')}</td><td>${m.tipo==='credito'?'Crédito / partilha':'Retirada / gasto'}</td><td>${esc(m.descricao)}</td><td class="${m.tipo==='credito'?'ok':'critical'}"><b>${m.tipo==='credito'?'+':'-'} ${money(m.valor)}</b></td><td class="actions"><button onclick="editMovSocio('${m.id}')">Editar</button><button class="danger" onclick="delMovSocio('${m.id}')">Excluir</button></td></tr>`).join('')}</table></div>`;
+}
 function renderDashboard(){
   const baixos=state.produtos.filter(p=>Number(p.minimo||0)>0&&Number(p.estoque||0)<=Number(p.minimo||0));
   $('kpiClientes').textContent=state.clientes.length;
   $('kpiProdutos').textContent=state.produtos.length;
   $('kpiEstoqueBaixo').textContent=baixos.length;
   $('kpiAberto').textContent=money(state.parcelas.reduce((a,p)=>a+p.valor-p.valorPago,0));
+  const kd=$('kpiDespesas'); if(kd) kd.textContent=money(totalDespesas());
+  const ks=$('kpiSocios'); if(ks) ks.textContent=state.socios.length;
   $('dashboardEstoque').innerHTML=`${baixos.length?`<div class="stock-alert"><strong>⚠ Atenção: ${baixos.length} produto(s) precisam de reposição.</strong><span>O alerta aparece quando o estoque chega ao mínimo configurado.</span></div>`:''}<div class="table-wrap"><table><tr><th>Produto</th><th>Estoque</th><th>Mínimo</th><th>Preço</th><th>Situação</th></tr>${state.produtos.slice(0,10).map(p=>{const st=estoqueStatus(p);return `<tr><td>${esc(p.nome)}</td><td class="${st.classe}"><b>${p.estoque}</b> ${esc(p.unidade)}</td><td>${p.minimo||0}</td><td>${money(p.preco)}</td><td><span class="stock-badge ${st.classe}">${st.icone} ${st.texto}</span></td></tr>`}).join('')}</table></div>`;
 }
-function renderAll(){renderClientes();renderProdutos();renderVenda();renderReceber();renderDashboard()}
-Object.assign(window,{show,novoCliente,editCliente,delCliente,novoProduto,editProduto,delProduto,ajustarEstoque,pagarParcela,processarImportacao,importarTexto,baixarModelos,exportar});
+function renderAll(){renderClientes();renderProdutos();renderVenda();renderReceber();renderDespesas();renderSocios();renderDashboard()}
+Object.assign(window,{show,novoCliente,editCliente,delCliente,novoProduto,editProduto,delProduto,ajustarEstoque,pagarParcela,processarImportacao,importarTexto,baixarModelos,exportar,novoFornecedor,editFornecedor,delFornecedor,novaDespesa,editDespesa,delDespesa,novoSocio,editSocio,delSocio,novoMovSocio,editMovSocio,delMovSocio});
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',()=>{initApp();renderAll();show('dashboard');});
 }else{
