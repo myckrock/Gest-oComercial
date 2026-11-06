@@ -2,9 +2,24 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gestão Comercial</title><link rel="stylesheet" href="styles.css">
+<title>Gestão Comercial</title>
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div id="pwaInstallBanner" class="pwa-banner hidden">
+  <div><strong>Instale o Gestão Comercial</strong><small>Tenha acesso rápido pelo celular ou computador.</small></div>
+  <button id="pwaInstallBtn">Instalar</button><button type="button" class="secondary" id="pwaInstallClose">Agora não</button>
+</div>
+<div id="pwaUpdateBanner" class="pwa-banner update hidden">
+  <div><strong>Nova versão disponível</strong><small>Uma atualização do Gestão Comercial está pronta.</small></div>
+  <button id="pwaUpdateBtn">Atualizar agora</button>
+</div>
 <header>
   <div class="brand"><div class="logo">GC</div><div><h1>Gestão Comercial</h1><small>Clientes • Produtos • Estoque • Vendas</small></div></div>
   <nav>
@@ -87,4 +102,5 @@
 </section>
 </main>
 <script src="app.js" defer></script>
+<script src="pwa.js"></script>
 </body></html>
