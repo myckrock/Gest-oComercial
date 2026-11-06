@@ -1,18 +1,14 @@
-# Gestão Comercial
+# Gestão Comercial — PWA
 
-Aplicação web de gestão comercial com clientes, produtos, estoque, vendas, contas a receber, despesas, fornecedores e sócios.
+Esta versão mostra automaticamente a janela de instalação.
 
-## PWA / instalação
-A aplicação agora pode ser instalada como aplicativo no navegador. Em navegadores compatíveis, aparece um aviso **Instalar**.
+Importante: o botão de instalação só pode chamar a confirmação nativa quando Chrome/Edge fornecerem o evento `beforeinstallprompt`. Nenhum JavaScript pode contornar a segurança do navegador e forçar a instalação se o site não estiver elegível.
 
-Também existe verificação automática de atualização. Quando uma versão nova for publicada, o sistema mostra **Nova versão disponível** e o usuário pode tocar em **Atualizar agora**.
+Requisitos:
+- HTTPS (GitHub Pages atende)
+- manifest.webmanifest válido
+- service worker em `/sw.js`
+- ícones 192x192 e 512x512
+- abrir pelo servidor, não por `file://`
 
-### Para publicar uma nova versão
-1. Altere `APP_VERSION` em `pwa.js`.
-2. Altere `version` em `version.json` para o mesmo número.
-3. Altere `CACHE_NAME` em `sw.js` para a nova versão.
-4. Publique os arquivos no GitHub Pages.
-
-Exemplo: `1.1.1` → `1.1.1`.
-
-> O navegador precisa acessar o site por HTTPS para o Service Worker/PWA funcionar. GitHub Pages já fornece HTTPS.
+A janela aparece mesmo quando o evento ainda não foi liberado, explicando o motivo. Quando o navegador libera a instalação, o botão abre diretamente a confirmação nativa.

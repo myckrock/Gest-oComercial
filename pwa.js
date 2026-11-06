@@ -1,46 +1,66 @@
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.2';
 let deferredInstallPrompt = null;
 let swRegistration = null;
 let updateReady = false;
+let installModalShown = false;
 
-const pwaEl = id => document.getElementById(id);
-const showPwa = id => pwaEl(id)?.classList.remove('hidden');
-const hidePwa = id => pwaEl(id)?.classList.add('hidden');
+const el = id => document.getElementById(id);
+const show = id => el(id)?.classList.remove('hidden');
+const hide = id => el(id)?.classList.add('hidden');
 
-function isStandalone(){
+function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
-function showInstallModal(){
-  if (!isStandalone() && deferredInstallPrompt) showPwa('pwaInstallModal');
-}
-
-function showUpdatePrompt(){
-  updateReady = true;
-  showPwa('pwaUpdateBanner');
-}
-
-async function activateUpdate(){
-  if (!swRegistration) return location.reload();
-  if (swRegistration.waiting) {
-    swRegistration.waiting.postMessage('SKIP_WAITING');
-    return;
+function openInstallModal() {
+  if (!isStandalone() && !installModalShown) {
+    installModalShown = true;
+    show('pwaInstallModal');
   }
+}
+
+function setInstallMessage(available) {
+  const msg = el('pwaInstallMessage');
+  const btn = el('pwaInstallBtn');
+  if (!msg || !btn) return;
+  if (available) {
+    msg.textContent = 'Instale o sistema neste computador para abrir como um aplicativo, sem precisar procurar a opção de instalação no navegador.';
+    btn.textContent = 'Instalar aplicativo';
+    btn.disabled = false;
+  } else {
+    msg.textContent = 'O navegador ainda não liberou a instalação automática. Isso normalmente acontece quando o site não está em HTTPS ou ainda não atende aos requisitos de aplicativo instalável.';
+    btn.textContent = 'Verificar novamente';
+    btn.disabled = false;
+  }
+}
+
+function showInstallModal() {
+  if (isStandalone()) return;
+  setInstallMessage(!!deferredInstallPrompt);
+  openInstallModal();
+}
+
+function showUpdatePrompt() {
+  updateReady = true;
+  show('pwaUpdateBanner');
+}
+
+async function activateUpdate() {
   try {
-    await swRegistration.update();
-    if (swRegistration.waiting) {
-      swRegistration.waiting.postMessage('SKIP_WAITING');
-    } else {
-      const keys = await caches.keys();
-      await Promise.all(keys.filter(k => k.startsWith('gestao-comercial-')).map(k => caches.delete(k)));
-      location.reload();
+    if (swRegistration) {
+      await swRegistration.update();
+      if (swRegistration.waiting) {
+        swRegistration.waiting.postMessage({type:'SKIP_WAITING'});
+        return;
+      }
     }
+    location.reload();
   } catch (_) {
     location.reload();
   }
 }
 
-async function checkAppVersion(){
+async function checkAppVersion() {
   try {
     const response = await fetch('./version.json?t=' + Date.now(), {cache:'no-store'});
     if (!response.ok) return;
@@ -49,17 +69,21 @@ async function checkAppVersion(){
   } catch (_) {}
 }
 
-async function registerPWA(){
+async function registerPWA() {
   if (!('serviceWorker' in navigator)) return;
   try {
     swRegistration = await navigator.serviceWorker.register('./sw.js', {scope:'./'});
+    await swRegistration.update();
 
     if (swRegistration.waiting) showUpdatePrompt();
+
     swRegistration.addEventListener('updatefound', () => {
       const worker = swRegistration.installing;
       if (!worker) return;
       worker.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdatePrompt();
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdatePrompt();
+        }
       });
     });
 
@@ -67,45 +91,49 @@ async function registerPWA(){
       if (updateReady) location.reload();
     });
 
-    setTimeout(checkAppVersion, 1500);
+    setTimeout(checkAppVersion, 1200);
     setInterval(checkAppVersion, 5 * 60 * 1000);
   } catch (err) {
     console.warn('PWA não pôde ser inicializado:', err);
   }
 }
 
-// O navegador entrega este evento somente quando a página atende aos requisitos
-// de instalação. Guardamos o evento para abrir a confirmação a partir do nosso botão.
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  // Dá um pequeno intervalo para a interface carregar antes de mostrar a janela.
-  setTimeout(showInstallModal, 900);
+  setInstallMessage(true);
+  setTimeout(showInstallModal, 300);
 });
 
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
-  hidePwa('pwaInstallModal');
+  hide('pwaInstallModal');
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  pwaEl('pwaInstallBtn')?.addEventListener('click', async () => {
+  el('pwaInstallBtn')?.addEventListener('click', async () => {
     if (!deferredInstallPrompt) {
-      hidePwa('pwaInstallModal');
-      return;
+      // Não existe API pública para forçar a instalação se o navegador não
+      // concedeu beforeinstallprompt. Apenas tentamos registrar novamente.
+      await registerPWA();
+      setInstallMessage(!!deferredInstallPrompt);
+      if (!deferredInstallPrompt) return;
     }
     deferredInstallPrompt.prompt();
     try { await deferredInstallPrompt.userChoice; } catch (_) {}
     deferredInstallPrompt = null;
-    hidePwa('pwaInstallModal');
+    hide('pwaInstallModal');
   });
 
-  pwaEl('pwaInstallClose')?.addEventListener('click', () => hidePwa('pwaInstallModal'));
-  pwaEl('pwaUpdateBtn')?.addEventListener('click', activateUpdate);
+  el('pwaInstallClose')?.addEventListener('click', () => hide('pwaInstallModal'));
+  el('pwaUpdateBtn')?.addEventListener('click', activateUpdate);
 
-  // ESC fecha a janela sem instalar.
+  // Mostra a janela automaticamente mesmo se o navegador ainda não tiver
+  // emitido beforeinstallprompt, deixando claro por que a instalação não foi liberada.
+  setTimeout(showInstallModal, 2500);
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') hidePwa('pwaInstallModal');
+    if (e.key === 'Escape') hide('pwaInstallModal');
   });
 
   registerPWA();

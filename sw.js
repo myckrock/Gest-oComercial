@@ -1,9 +1,10 @@
-const CACHE_NAME = 'gestao-comercial-1.1.0';
+const CACHE_NAME = 'gestao-comercial-1.1.2';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './pwa.js',
   './manifest.webmanifest',
   './version.json',
   './icons/icon-192.png',
@@ -12,7 +13,6 @@ const APP_SHELL = [
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
-  // Mantemos a nova versão em "waiting" para que o app possa pedir confirmação ao usuário.
 });
 
 self.addEventListener('activate', event => {
@@ -25,17 +25,15 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('message', event => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data === 'SKIP_WAITING' || event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
-  // HTML e version.json: sempre tenta buscar a versão mais recente na internet.
   if (request.mode === 'navigate' || new URL(request.url).pathname.endsWith('/version.json')) {
     event.respondWith(
-      fetch(request, {cache: 'no-store'})
+      fetch(request, {cache:'no-store'})
         .then(response => {
           if (request.mode === 'navigate' && response.ok) {
             const copy = response.clone();
@@ -47,8 +45,6 @@ self.addEventListener('fetch', event => {
     );
     return;
   }
-
-  // Assets: cache primeiro, mas atualiza em segundo plano.
   event.respondWith(
     caches.match(request).then(cached => {
       const network = fetch(request).then(response => {
