@@ -1,4 +1,4 @@
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.0';
 let deferredInstallPrompt = null;
 let swRegistration = null;
 let updateReady = false;
