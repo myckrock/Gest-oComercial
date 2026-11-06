@@ -1,0 +1,50 @@
+{
+  "name": "gestao-comercial-desktop",
+  "version": "1.2.0",
+  "description": "Gestão Comercial - aplicativo desktop",
+  "main": "main.js",
+  "author": "Gestão Comercial",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis",
+    "dist": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "^39.1.2",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.gestaocomercial.app",
+    "productName": "Gestão Comercial",
+    "artifactName": "Gestao-Comercial-Setup-${version}.${ext}",
+    "asar": true,
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "pwa.js",
+      "sw.js",
+      "manifest.webmanifest",
+      "version.json",
+      "icons/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "icons/icon-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gestão Comercial"
+    }
+  }
+}

@@ -81,6 +81,11 @@ window.addEventListener('appinstalled', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.desktopApp?.isDesktop) {
+    hidePwa('pwaInstallBanner');
+    hidePwa('pwaUpdateBanner');
+    return;
+  }
   pwaEl('pwaInstallBtn')?.addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
