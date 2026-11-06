@@ -13,6 +13,6 @@ Também existe verificação automática de atualização. Quando uma versão no
 3. Altere `CACHE_NAME` em `sw.js` para a nova versão.
 4. Publique os arquivos no GitHub Pages.
 
-Exemplo: `1.1.0` → `1.1.1`.
+Exemplo: `1.1.1` → `1.1.1`.
 
 > O navegador precisa acessar o site por HTTPS para o Service Worker/PWA funcionar. GitHub Pages já fornece HTTPS.

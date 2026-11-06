@@ -1,4 +1,4 @@
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 let deferredInstallPrompt = null;
 let swRegistration = null;
 let updateReady = false;
@@ -6,6 +6,14 @@ let updateReady = false;
 const pwaEl = id => document.getElementById(id);
 const showPwa = id => pwaEl(id)?.classList.remove('hidden');
 const hidePwa = id => pwaEl(id)?.classList.add('hidden');
+
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function showInstallModal(){
+  if (!isStandalone() && deferredInstallPrompt) showPwa('pwaInstallModal');
+}
 
 function showUpdatePrompt(){
   updateReady = true;
@@ -23,8 +31,6 @@ async function activateUpdate(){
     if (swRegistration.waiting) {
       swRegistration.waiting.postMessage('SKIP_WAITING');
     } else {
-      // Se a atualização foi detectada pelo version.json, limpa o cache antigo
-      // antes de recarregar para garantir que app.js/styles.css sejam novos.
       const keys = await caches.keys();
       await Promise.all(keys.filter(k => k.startsWith('gestao-comercial-')).map(k => caches.delete(k)));
       location.reload();
@@ -61,7 +67,6 @@ async function registerPWA(){
       if (updateReady) location.reload();
     });
 
-    // Verifica uma versão publicada mesmo quando o sw.js não mudou.
     setTimeout(checkAppVersion, 1500);
     setInterval(checkAppVersion, 5 * 60 * 1000);
   } catch (err) {
@@ -69,31 +74,39 @@ async function registerPWA(){
   }
 }
 
+// O navegador entrega este evento somente quando a página atende aos requisitos
+// de instalação. Guardamos o evento para abrir a confirmação a partir do nosso botão.
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  showPwa('pwaInstallBanner');
+  // Dá um pequeno intervalo para a interface carregar antes de mostrar a janela.
+  setTimeout(showInstallModal, 900);
 });
 
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
-  hidePwa('pwaInstallBanner');
+  hidePwa('pwaInstallModal');
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.desktopApp?.isDesktop) {
-    hidePwa('pwaInstallBanner');
-    hidePwa('pwaUpdateBanner');
-    return;
-  }
   pwaEl('pwaInstallBtn')?.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
+    if (!deferredInstallPrompt) {
+      hidePwa('pwaInstallModal');
+      return;
+    }
     deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
+    try { await deferredInstallPrompt.userChoice; } catch (_) {}
     deferredInstallPrompt = null;
-    hidePwa('pwaInstallBanner');
+    hidePwa('pwaInstallModal');
   });
-  pwaEl('pwaInstallClose')?.addEventListener('click', () => hidePwa('pwaInstallBanner'));
+
+  pwaEl('pwaInstallClose')?.addEventListener('click', () => hidePwa('pwaInstallModal'));
   pwaEl('pwaUpdateBtn')?.addEventListener('click', activateUpdate);
+
+  // ESC fecha a janela sem instalar.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hidePwa('pwaInstallModal');
+  });
+
   registerPWA();
 });
