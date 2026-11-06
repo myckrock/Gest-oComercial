@@ -10,7 +10,7 @@
   <nav>
     <button data-view="dashboard">Dashboard</button><button data-view="clientes">Clientes</button>
     <button data-view="produtos">Produtos</button><button data-view="vendas">Vendas</button>
-    <button data-view="receber">Contas a receber</button><button data-view="importar">Importar</button>
+    <button data-view="receber">Contas a receber</button><button data-view="despesas">Despesas</button><button data-view="socios">Sócios</button><button data-view="importar">Importar</button>
   </nav>
 </header>
 <main>
@@ -19,7 +19,7 @@
 <div class="card"><span>Clientes</span><b id="kpiClientes">0</b></div>
 <div class="card"><span>Produtos</span><b id="kpiProdutos">0</b></div>
 <div class="card"><span>⚠ Estoque baixo</span><b id="kpiEstoqueBaixo">0</b><small>produtos para repor</small></div>
-<div class="card"><span>Contas em aberto</span><b id="kpiAberto">R$ 0,00</b></div>
+<div class="card"><span>Contas em aberto</span><b id="kpiAberto">R$ 0,00</b></div><div class="card"><span>Despesas</span><b id="kpiDespesas">R$ 0,00</b></div><div class="card"><span>Sócios</span><b id="kpiSocios">0</b></div>
 </div>
 <div class="panel"><div class="panel-head"><h3>Estoque</h3><button onclick="show('produtos')">Gerenciar produtos</button></div><div id="dashboardEstoque"></div></div>
 </section>
@@ -51,6 +51,25 @@
 
 <section id="receber" class="view hidden"><div class="section-head"><div><h2>Contas a receber</h2><p>Acompanhe parcelas abertas, vencidas e pagas.</p></div></div><div id="receberLista"></div></section>
 
+
+<section id="despesas" class="view hidden">
+ <div class="section-head"><div><h2>Despesas</h2><p>Controle materiais comprados, embalagens, fretes, serviços e outros gastos da empresa.</p></div><div class="actions"><button onclick="novaDespesa()">+ Nova despesa</button><button class="secondary" onclick="novoFornecedor()">+ Fornecedor</button></div></div>
+ <div id="despesasResumo"></div>
+ <form id="despesaForm" class="form-grid panel">
+  <input type="hidden" id="despesaId"><label>Data*<input id="despesaData" type="date" required></label><label>Descrição*<input id="despesaDescricao" placeholder="Ex.: caixas, embalagens, frete..." required></label>
+  <label>Categoria<input id="despesaCategoria" placeholder="Material, frete, aluguel, serviço..." list="categoriasDespesa"><datalist id="categoriasDespesa"><option value="Material"><option value="Embalagens"><option value="Frete"><option value="Serviços"><option value="Aluguel"><option value="Energia"><option value="Telefone/Internet"><option value="Impostos"><option value="Outros"></datalist></label>
+  <label>Fornecedor<select id="despesaFornecedor"></select></label><label>Valor*<input id="despesaValor" type="number" min="0" step=".01" required></label><label>Forma de pagamento<select id="despesaForma"><option value="pix">PIX</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option><option value="boleto">Boleto</option><option value="transferencia">Transferência</option><option value="outro">Outro</option></select></label>
+  <label class="wide">Observações<textarea id="despesaObs"></textarea></label><div class="wide"><button>Salvar despesa</button><button type="button" class="secondary" onclick="novaDespesa()">Limpar</button></div>
+ </form>
+ <div class="panel"><h3>Fornecedores</h3><form id="fornecedorForm" class="form-grid"><input type="hidden" id="fornecedorId"><label>Nome*<input id="fornecedorNome" required></label><label>CPF/CNPJ<input id="fornecedorDoc"></label><label>Telefone<input id="fornecedorTel"></label><label>E-mail<input id="fornecedorEmail" type="email"></label><label class="wide">Observações<textarea id="fornecedorObs"></textarea></label><div class="wide"><button>Salvar fornecedor</button></div></form><div id="fornecedoresLista"></div></div>
+</section>
+<section id="socios" class="view hidden">
+ <div class="section-head"><div><h2>Sócios</h2><p>Controle a participação, créditos de partilha e retiradas/gastos de cada sócio.</p></div><div class="actions"><button onclick="novoSocio()">+ Novo sócio</button><button class="secondary" onclick="novoMovSocio()">+ Lançar valor</button></div></div>
+ <div class="panel"><h3>Partilha e saldo dos sócios</h3><p class="help">Crédito/partilha aumenta o saldo do sócio. Retirada/gasto diminui o saldo.</p><div id="sociosResumo"></div></div>
+ <form id="socioForm" class="form-grid panel"><input type="hidden" id="socioId"><label>Nome do sócio*<input id="socioNome" required></label><label>Participação (%)<input id="socioPercentual" type="number" min="0" max="100" step="0.01" value="0"></label><label>CPF/CNPJ<input id="socioDoc"></label><label class="wide">Observações<textarea id="socioObs"></textarea></label><div class="wide"><button>Salvar sócio</button><button type="button" class="secondary" onclick="novoSocio()">Limpar</button></div></form>
+ <form id="movSocioForm" class="form-grid panel"><input type="hidden" id="movSocioId"><label>Sócio*<select id="movSocioSocio" required></select></label><label>Data*<input id="movSocioData" type="date" required></label><label>Tipo<select id="movSocioTipo"><option value="credito">Crédito / partilha</option><option value="retirada">Retirada / gasto</option></select></label><label>Valor*<input id="movSocioValor" type="number" min="0" step=".01" required></label><label class="wide">Descrição*<input id="movSocioDescricao" placeholder="Ex.: distribuição de lucro, adiantamento, compra paga pelo sócio..." required></label><div class="wide"><button>Lançar valor</button><button type="button" class="secondary" onclick="novoMovSocio()">Limpar</button></div></form>
+ <div class="panel"><h3>Histórico de lançamentos</h3><div id="movSociosLista"></div></div>
+</section>
 <section id="importar" class="view hidden"><div class="section-head"><div><h2>Importação de tabelas</h2><p>Importe clientes, produtos e preços em massa.</p></div></div>
 <div class="panel import-box">
 <h3>Como funciona</h3><p>Você pode importar <b>.XLSX</b> (Excel) ou <b>CSV</b>. O sistema lê a primeira aba da planilha e reconhece diversos nomes e sinônimos para as colunas.</p>
