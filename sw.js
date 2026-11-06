@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gestao-comercial-1.1.1';
+const CACHE_NAME = 'gestao-comercial-1.1.0';
 const APP_SHELL = [
   './',
   './index.html',
